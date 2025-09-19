@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss Respawn Tracker - Django Style</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light theme */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --accent-primary: #3b82f6;
+            --accent-primary-hover: #2563eb;
+            --accent-secondary: #10b981;
+            --accent-danger: #ef4444;
+            --accent-warning: #f59e0b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --bg-hover: #475569;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --border-hover: #64748b;
+            --accent-primary: #60a5fa;
+            --accent-primary-hover: #3b82f6;
+            --accent-secondary: #34d399;
+            --accent-danger: #f87171;
+            --accent-warning: #fbbf24;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .logo-icon {
+            width: 2rem;
+            height: 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-primary-hover);
+            border-color: var(--accent-primary-hover);
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--bg-card);
+            min-width: 160px;
+            box-shadow: var(--shadow-lg);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            z-index: 1000;
+            right: 0;
+            top: calc(100% + 0.25rem);
+            overflow: hidden;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Main content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .filters {
+            background-color: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+
+        .select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+
+        .select:hover {
+            border-color: var(--border-hover);
+        }
+
+        .select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Table */
+        .table-container {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background-color: var(--bg-secondary);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .table tbody tr.completed {
+            opacity: 0.6;
+        }
+
+        .table tbody tr.expanded {
+            background-color: var(--bg-hover);
+        }
+
+        .boss-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .boss-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .boss-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .boss-level {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .boss-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background-color: var(--bg-secondary);
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            width: fit-content;
+        }
+
+        .location-info {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .timer {
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .timer.available {
+            background-color: var(--accent-secondary);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .timer.soon {
+            background-color: var(--accent-warning);
+            color: white;
+        }
+
+        .timer.later {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        .timer.overdue {
+            background-color: var(--accent-danger);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-primary);
+        }
+
+        .checkbox:hover {
+            border-color: var(--accent-secondary);
+        }
+
+        .checkbox.checked {
+            background-color: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+            color: white;
+        }
+
+        .notification-btn {
+            padding: 0.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+
+        .notification-btn:hover {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+        .notification-btn.active {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+        /* Expandable details */
+        .details-row {
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        .details-row.show {
+            display: table-row;
+        }
+
+        .details-content {
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .detail-card {
+            background-color: var(--bg-card);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-controls {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .filters-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.25rem;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 800px;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-indicator.online {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--accent-secondary);
+        }
+
+        .status-indicator.offline {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--accent-danger);
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">⚔️</div>
+                    <span id="app-title">Boss Respawn Tracker</span>
+                </div>
+                
+                <nav class="nav-controls">
+                    <button class="btn" id="time-toggle">
+                        <span>🕒</span>
+                        <span id="time-mode-text">Local Time</span>
+                    </button>
+                    
+                    <div class="dropdown">
+                        <button class="btn">
+                            <span>🌐</span>
+                            <span id="current-language">English</span>
+                            <span>▼</span>
+                        </button>
+                        <div class="dropdown-content">
+                            <div class="dropdown-item" onclick="changeLanguage('en')">English</div>
+                            <div class="dropdown-item" onclick="changeLanguage('ru')">Русский</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" id="theme-toggle">
+                        <span id="theme-icon">☀️</span>
+                        <span id="theme-text">Light Theme</span>
+                    </button>
+                    
+                    <button class="btn btn-primary" onclick="refreshData()">
+                        <span>🔄</span>
+                        <span id="refresh-text">Refresh</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <h1 class="page-title" id="page-title">Boss Respawn Schedule</h1>
+            
+            <div class="filters">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label class="filter-label" id="completed-filter-label" for="completed-filter">Show:</label>
+                        <select class="select" id="completed-filter">
+                            <option value="all">Show All</option>
+                            <option value="pending">Hide Completed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label" id="level-filter-label" for="level-filter">Location Level:</label>
+                        <select class="select" id="level-filter">
+                            <option value="all">All Levels</option>
+                            <option value="0">Level 0</option>
+                            <option value="120">Level 120</option>
+                            <option value="141">Level 141</option>
+                            <option value="143">Level 143</option>
+                            <option value="150">Level 150</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <span class="status-indicator online">
+                            <span class="status-dot"></span>
+                            <span id="status-text">Live Updates</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th id="th-icon">Icon</th>
+                            <th id="th-name">Boss Name</th>
+                            <th id="th-type">Type</th>
+                            <th id="th-location">Location</th>
+                            <th id="th-timer">Respawn Timer</th>
+                            <th id="th-completed">Completed</th>
+                            <th id="th-notifications">Notifications</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boss-table-body">
+                        <!-- Boss rows populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global state
+        let currentLanguage = 'en';
+        let currentTheme = 'dark';
+        let isLocalTime = true;
+        let bosses = [];
+        let expandedRow = null;
+        let updateInterval = null;
+
+        // Boss data with Django-style structure
+        const bossData = {
+            en: [
+                {
+                    id: 1,
+                    name: "Ancient Dragon Lord",
+                    type: "World Boss",
+                    typeIcon: "🐉",
+                    location: "Dragon's Peak Sanctuary",
+                    level: 150,
+                    icon: "🐲",
+                    respawnTime: new Date(Date.now() + 45 * 60 * 1000), // 45 min
+                    completed: false,
+                    notifications: false,
+                    description: "The most powerful dragon in the realm. Requires coordinated raid tactics and superior equipment. Guards the legendary Dragon Heart artifact.",
+                    rewards: "Dragon Heart Artifact, Legendary Scale Armor Set, Ancient Dragon Essence (x5), 100,000 Gold",
+                    difficulty: "Mythic",
+                    recommendedPlayers: "20-25 players (Level 145+)",
+                    respawnCooldown: "6 hours",
+                    lastKilled: new Date(Date.now() - 5.25 * 60 * 60 * 1000) // 5.25 hours ago
+                },
+                {
+                    id: 2,
+                    name: "Shadow Overlord",
+                    type: "Raid Boss",
+                    typeIcon: "👹",
+                    location: "Nethershadow Citadel",
+                    level: 143,
+                    icon: "🌑",
+                    respawnTime: new Date(Date.now() + 90 * 60 * 1000), // 1.5 hours
+                    completed: false,
+                    notifications: true,
+                    description: "Master of dark magic and commander of shadow minions. Phases through different combat modes. Extremely dangerous in groups.",
+                    rewards: "Shadowbane Weapon Set, Dark Magic Codex, Shadow Essence (x10), Nether Crystal (x3)",
+                    difficulty: "Epic",
+                    recommendedPlayers: "15-20 players (Level 140+)",
+                    respawnCooldown: "4 hours",
+                    lastKilled: new Date(Date.now() - 2.5 * 60 * 60 * 1000) // 2.5 hours ago
+                },
+                {
+                    id: 3,
+                    name: "Frost Queen Elara",
+                    type: "Elite Boss",
+                    typeIcon: "❄️",
+                    location: "Eternal Ice Fortress",
+                    level: 141,
+                    icon: "👑",
+                    respawnTime: new Date(Date.now() - 5 * 60 * 1000), // 5 min ago (available)
+                    completed: true,
+                    notifications: false,
+                    description: "Ruler of the frozen wastes. Commands ice magic and summons devastating blizzards. Vulnerable to fire damage.",
+                    rewards: "Ice Crown of Winter, Frost Staff Supreme, Glacial Armor Set, Ice Crystal (x7)",
+                    difficulty: "Rare",
+                    recommendedPlayers: "10-15 players (Level 135+)",
+                    respawnCooldown: "3 hours",
+                    lastKilled: new Date(Date.now() - 3.08 * 60 * 60 * 1000) // 3.08 hours ago
+                },
+                {
+                    id: 4,
+                    name: "Inferno Titan",
+                    type: "World Boss",
+                    typeIcon: "🔥",
+                    location: "Molten Core Depths",
+                    level: 150,
+                    icon: "🌋",
+                    respawnTime: new Date(Date.now() + 3.5 * 60 * 60 * 1000), // 3.5 hours
+                    completed: false,
+                    notifications: true,
+                    description: "Colossal being of pure fire and molten rock. Creates massive area-of-effect attacks. Immune to fire damage.",
+                    rewards: "Titan's Molten Hammer, Inferno Plate Armor, Fire Core Essence, Volcanic Gem (x5)",
+                    difficulty: "Mythic",
+                    recommendedPlayers: "20-25 players (Level 145+)",
+                    respawnCooldown: "8 hours",
+                    lastKilled: new Date(Date.now() - 4.5 * 60 * 60 * 1000) // 4.5 hours ago
+                },
+                {
+                    id: 5,
+                    name: "Storm Wyvern Alpha",
+                    type: "Flying Boss",
+                    typeIcon: "⚡",
+                    location: "Skyreach Temple",
+                    level: 120,
+                    icon: "🌪️",
+                    respawnTime: new Date(Date.now() + 25 * 60 * 1000), // 25 min
+                    completed: false,
+                    notifications: false,
+                    description: "Lightning-fast aerial predator. Highly mobile with devastating lightning attacks. Requires ranged strategy.",
+                    rewards: "Stormrider Wings, Lightning Spear, Wind Crystal (x4), Thunder Gem (x2)",
+                    difficulty: "Uncommon",
+                    recommendedPlayers: "8-12 players (Level 115+)",
+                    respawnCooldown: "2 hours",
+                    lastKilled: new Date(Date.now() - 1.58 * 60 * 60 * 1000) // 1.58 hours ago
+                },
+                {
+                    id: 6,
+                    name: "Void Harbinger",
+                    type: "Dimensional Boss",
+                    typeIcon: "🌌",
+                    location: "Void Nexus Chamber",
+                    level: 143,
+                    icon: "⚫",
+                    respawnTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
+                    completed: false,
+                    notifications: true,
+                    description: "Otherworldly entity from the void dimensions. Manipulates space and reality. Extremely unpredictable combat patterns.",
+                    rewards: "Void Walker Armor, Dimensional Blade, Space-Time Crystal (x3), Void Essence (x8)",
+                    difficulty: "Epic",
+                    recommendedPlayers: "16-22 players (Level 140+)",
+                    respawnCooldown: "5 hours",
+                    lastKilled: new Date(Date.now() - 3 * 60 * 60 * 1000) // 3 hours ago
+                }
+            ],
+            ru: [
+                {
+                    id: 1,
+                    name: "Древний Драконий Лорд",
+                    type: "Мировой Босс",
+                    typeIcon: "🐉",
+                    location: "Святилище Драконьего Пика",
+                    level: 150,
+                    icon: "🐲",
+                    respawnTime: new Date(Date.now() + 45 * 60 * 1000),
+                    completed: false,
+                    notifications: false,
+                    description: "Самый могущественный дракон в королевстве. Требует скоординированной рейдовой тактики и превосходного снаряжения.",
+                    rewards: "Артефакт Сердце Дракона, Легендарный Набор Чешуйчатой Брони, Древняя Эссенция Дракона (x5), 100,000 Золота",
+                    difficulty: "Мифический",
+                    recommendedPlayers: "20-25 игроков (Уровень 145+)",
+                    respawnCooldown: "6 часов",
+                    lastKilled: new Date(Date.now() - 5.25 * 60 * 60 * 1000)
+                },
+                {
+                    id: 2,
+                    name: "Повелитель Теней",
+                    type: "Рейдовый Босс",
+                    typeIcon: "👹",
+                    location: "Цитадель Нижних Теней",
+                    level: 143,
+                    icon: "🌑",
+                    respawnTime: new Date(Date.now() + 90 * 60 * 1000),
+                    completed: false,
+                    notifications: true,
+                    description: "Мастер темной магии и командир теневых миньонов. Переходит через различные боевые режимы.",
+                    rewards: "Набор Оружия Теней, Кодекс Темной Магии, Эссенция Тени (x10), Нижний Кристалл (x3)",
+                    difficulty: "Эпический",
+                    recommendedPlayers: "15-20 игроков (Уровень 140+)",
+                    respawnCooldown: "4 часа",
+                    lastKilled: new Date(Date.now() - 2.5 * 60 * 60 * 1000)
+                },
+                {
+                    id: 3,
+                    name: "Ледяная Королева Элара",
+                    type: "Элитный Босс",
+                    typeIcon: "❄️",
+                    location: "Вечная Ледяная Крепость",
+                    level: 141,
+                    icon: "👑",
+                    respawnTime: new Date(Date.now() - 5 * 60 * 1000),
+                    completed: true,
+                    notifications: false,
+                    description: "Правительница ледяных пустошей. Владеет ледяной магией и вызывает разрушительные метели.",
+                    rewards: "Ледяная Корона Зимы, Высший Посох Мороза, Ледниковый Набор Брони, Ледяной Кристалл (x7)",
+                    difficulty: "Редкий",
+                    recommendedPlayers: "10-15 игроков (Уровень 135+)",
+                    respawnCooldown: "3 часа",
+                    lastKilled: new Date(Date.now() - 3.08 * 60 * 60 * 1000)
+                },
+                {
+                    id: 4,
+                    name: "Инферно Титан",
+                    type: "Мировой Босс",
+                    typeIcon: "🔥",
+                    location: "Глубины Расплавленного Ядра",
+                    level: 150,
+                    icon: "🌋",
+                    respawnTime: new Date(Date.now() + 3.5 * 60 * 60 * 1000),
+                    completed: false,
+                    notifications: true,
+                    description: "Колоссальное существо из чистого огня и расплавленной породы. Создает массивные атаки по области.",
+                    rewards: "Расплавленный Молот Титана, Инферно Пластинчатая Броня, Эссенция Огненного Ядра, Вулканический Камень (x5)",
+                    difficulty: "Мифический",
+                    recommendedPlayers: "20-25 игроков (Уровень 145+)",
+                    respawnCooldown: "8 часов",
+                    lastKilled: new Date(Date.now() - 4.5 * 60 * 60 * 1000)
+                },
+                {
+                    id: 5,
+                    name: "Альфа Грозовой Виверн",
+                    type: "Летающий Босс",
+                    typeIcon: "⚡",
+                    location: "Храм Небесных Высот",
+                    level: 120,
+                    icon: "🌪️",
+                    respawnTime: new Date(Date.now() + 25 * 60 * 1000),
+                    completed: false,
+                    notifications: false,
+                    description: "Молниеносно быстрый воздушный хищник. Высокая мобильность с разрушительными молниевыми атаками.",
+                    rewards: "Крылья Грозового Всадника, Молниевое Копье, Кристалл Ветра (x4), Камень Грома (x2)",
+                    difficulty: "Необычный",
+                    recommendedPlayers: "8-12 игроков (Уровень 115+)",
+                    respawnCooldown: "2 часа",
+                    lastKilled: new Date(Date.now() - 1.58 * 60 * 60 * 1000)
+                },
+                {
+                    id: 6,
+                    name: "Предвестник Пустоты",
+                    type: "Измерительный Босс",
+                    typeIcon: "🌌",
+                    location: "Камера Нексуса Пустоты",
+                    level: 143,
+                    icon: "⚫",
+                    respawnTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
+                    completed: false,
+                    notifications: true,
+                    description: "Потустороннее существо из измерений пустоты. Манипулирует пространством и реальностью.",
+                    rewards: "Броня Ходока Пустоты, Измерительный Клинок, Кристалл Пространства-Времени (x3), Эссенция Пустоты (x8)",
+                    difficulty: "Эпический",
+                    recommendedPlayers: "16-22 игрока (Уровень 140+)",
+                    respawnCooldown: "5 часов",
+                    lastKilled: new Date(Date.now() - 3 * 60 * 60 * 1000)
+                }
+            ]
+        };
+
+        // Translations
+        const translations = {
+            en: {
+                appTitle: "Boss Respawn Tracker",
+                pageTitle: "Boss Respawn Schedule",
+                localTime: "Local Time",
+                serverTime: "Server Time",
+                currentLanguage: "English",
+                lightTheme: "Light Theme",
+                darkTheme: "Dark Theme",
+                refresh: "Refresh",
+                showAll: "Show All",
+                hideCompleted: "Hide Completed",
+                allLevels: "All Levels",
+                completedFilterLabel: "Show:",
+                levelFilterLabel: "Location Level:",
+                statusText: "Live Updates",
+                thIcon: "Icon",
+                thName: "Boss Name",
+                thType: "Type",
+                thLocation: "Location",
+                thTimer: "Respawn Timer",
+                thCompleted: "Completed",
+                thNotifications: "Notifications",
+                available: "Available Now",
+                respawnsIn: "Respawns in",
+                overdue: "Overdue",
+                description: "Description",
+                rewards: "Rewards",
+                difficulty: "Difficulty",
+                recommendedPlayers: "Recommended Players",
+                respawnCooldown: "Respawn Cooldown",
+                lastKilled: "Last Killed"
+            },
+            ru: {
+                appTitle: "Трекер Возрождения Боссов",
+                pageTitle: "Расписание Возрождения Боссов",
+                localTime: "Местное время",
+                serverTime: "Серверное время",
+                currentLanguage: "Русский",
+                lightTheme: "Светлая тема",
+                darkTheme: "Темная тема",
+                refresh: "Обновить",
+                showAll: "Показать все",
+                hideCompleted: "Скрыть выполненные",
+                allLevels: "Все уровни",
+                completedFilterLabel: "Показать:",
+                levelFilterLabel: "Уровень локации:",
+                statusText: "Обновления в реальном времени",
+                thIcon: "Иконка",
+                thName: "Имя босса",
+                thType: "Тип",
+                thLocation: "Локация",
+                thTimer: "Таймер возрождения",
+                thCompleted: "Выполнено",
+                thNotifications: "Уведомления",
+                available: "Доступен сейчас",
+                respawnsIn: "Возродится через",
+                overdue: "Просрочен",
+                description: "Описание",
+                rewards: "Награды",
+                difficulty: "Сложность",
+                recommendedPlayers: "Рекомендуемые игроки",
+                respawnCooldown: "Кулдаун возрождения",
+                lastKilled: "Последнее убийство"
+            }
+        };
+
+        // Initialize application
+        function init() {
+            bosses = [...bossData[currentLanguage]];
+            updateLanguage();
+            renderBosses();
+            startTimerUpdates();
+            
+            // Event listeners
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+            document.getElementById('time-toggle').addEventListener('click', toggleTimeMode);
+            document.getElementById('completed-filter').addEventListener('change', applyFilters);
+            document.getElementById('level-filter').addEventListener('change', applyFilters);
+        }
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (currentTheme === 'dark') {
+                themeIcon.textContent = '☀️';
+                themeText.textContent = translations[currentLanguage].lightTheme;
+            } else {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = translations[currentLanguage].darkTheme;
+            }
+        }
+
+        // Time mode toggle
+        function toggleTimeMode() {
+            isLocalTime = !isLocalTime;
+            document.getElementById('time-mode-text').textContent = 
+                isLocalTime ? translations[currentLanguage].localTime : translations[currentLanguage].serverTime;
+            renderBosses();
+        }
+
+        // Language change
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            bosses = [...bossData[currentLanguage]];
+            updateLanguage();
+            renderBosses();
+        }
+
+        // Update all UI text
+        function updateLanguage() {
+            const t = translations[currentLanguage];
+            
+            document.getElementById('app-title').textContent = t.appTitle;
+            document.getElementById('page-title').textContent = t.pageTitle;
+            document.getElementById('current-language').textContent = t.currentLanguage;
+            document.getElementById('time-mode-text').textContent = isLocalTime ? t.localTime : t.serverTime;
+            document.getElementById('theme-text').textContent = currentTheme === 'dark' ? t.lightTheme : t.darkTheme;
+            document.getElementById('refresh-text').textContent = t.refresh;
+            document.getElementById('status-text').textContent = t.statusText;
+            
+            document.getElementById('completed-filter-label').textContent = t.completedFilterLabel;
+            document.getElementById('level-filter-label').textContent = t.levelFilterLabel;
+            
+            document.getElementById('th-icon').textContent = t.thIcon;
+            document.getElementById('th-name').textContent = t.thName;
+            document.getElementById('th-type').textContent = t.thType;
+            document.getElementById('th-location').textContent = t.thLocation;
+            document.getElementById('th-timer').textContent = t.thTimer;
+            document.getElementById('th-completed').textContent = t.thCompleted;
+            document.getElementById('th-notifications').textContent = t.thNotifications;
+            
+            // Update select options
+            const completedFilter = document.getElementById('completed-filter');
+            completedFilter.options[0].text = t.showAll;
+            completedFilter.options[1].text = t.hideCompleted;
+            
+            const levelFilter = document.getElementById('level-filter');
+            levelFilter.options[0].text = t.allLevels;
+        }
+
+        // Render boss table
+        function renderBosses() {
+            const tbody = document.getElementById('boss-table-body');
+            const completedFilter = document.getElementById('completed-filter').value;
+            const levelFilter = document.getElementById('level-filter').value;
+            
+            let filteredBosses = bosses.filter(boss => {
+                if (completedFilter === 'pending' && boss.completed) return false;
+                if (levelFilter !== 'all' && boss.level !== parseInt(levelFilter)) return false;
+                return true;
+            });
+            
+            tbody.innerHTML = '';
+            
+            filteredBosses.forEach(boss => {
+                const row = createBossRow(boss);
+                tbody.appendChild(row);
+                
+                const detailsRow = createDetailsRow(boss);
+                tbody.appendChild(detailsRow);
+            });
+        }
+
+        // Create boss row
+        function createBossRow(boss) {
+            const row = document.createElement('tr');
+            row.className = boss.completed ? 'completed fade-in' : 'fade-in';
+            row.setAttribute('data-boss-id', boss.id);
+            
+            const timerInfo = getTimerInfo(boss.respawnTime);
+            
+            row.innerHTML = `
+                <td>
+                    <div class="boss-icon">${boss.icon}</div>
+                </td>
+                <td>
+                    <div class="boss-info">
+                        <div class="boss-name">${boss.name}</div>
+                        <div class="boss-level">Level ${boss.level}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="boss-type">
+                        <span>${boss.typeIcon}</span>
+                        <span>${boss.type}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="location-info">${boss.location}</div>
+                </td>
+                <td>
+                    <div class="timer ${timerInfo.class}" data-time="${boss.respawnTime.getTime()}">
+                        ${timerInfo.text}
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox ${boss.completed ? 'checked' : ''}" 
+                         onclick="event.stopPropagation(); toggleCompleted(${boss.id})">
+                        ${boss.completed ? '✓' : ''}
+                    </div>
+                </td>
+                <td>
+                    <button class="notification-btn ${boss.notifications ? 'active' : ''}" 
+                            onclick="event.stopPropagation(); toggleNotifications(${boss.id})">
+                        ${boss.notifications ? '🔔' : '🔕'}
+                    </button>
+                </td>
+            `;
+            
+            row.addEventListener('click', () => toggleDetails(boss.id));
+            
+            return row;
+        }
+
+        // Create details row
+        function createDetailsRow(boss) {
+            const row = document.createElement('tr');
+            row.className = 'details-row';
+            row.setAttribute('data-details-id', boss.id);
+            
+            const t = translations[currentLanguage];
+            
+            row.innerHTML = `
+                <td colspan="7">
+                    <div class="details-content">
+                        <div class="details-grid">
+                            <div class="detail-card">
+                                <div class="detail-label">${t.description}</div>
+                                <div class="detail-value">${boss.description}</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">${t.rewards}</div>
+                                <div class="detail-value">${boss.rewards}</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">${t.difficulty}</div>
+                                <div class="detail-value">${boss.difficulty}</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">${t.recommendedPlayers}</div>
+                                <div class="detail-value">${boss.recommendedPlayers}</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">${t.respawnCooldown}</div>
+                                <div class="detail-value">${boss.respawnCooldown}</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">${t.lastKilled}</div>
+                                <div class="detail-value">${formatLastKilled(boss.lastKilled)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            `;
+            
+            return row;
+        }
+
+        // Get timer display info
+        function getTimerInfo(respawnTime) {
+            const now = new Date();
+            const diff = respawnTime.getTime() - now.getTime();
+            const t = translations[currentLanguage];
+            
+            if (diff <= 0) {
+                return {
+                    text: t.available,
+                    class: 'available'
+                };
+            }
+            
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            let timeString = '';
+            if (hours > 0) {
+                timeString = `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                timeString = `${minutes}m ${seconds}s`;
+            } else {
+                timeString = `${seconds}s`;
+            }
+            
+            const timerClass = hours > 1 ? 'later' : minutes > 10 ? 'soon' : 'soon';
+            
+            return {
+                text: `${t.respawnsIn} ${timeString}`,
+                class: timerClass
+            };
+        }
+
+        // Format last killed time
+        function formatLastKilled(date) {
+            const now = new Date();
+            const diff = now.getTime() - date.getTime();
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ago`;
+            } else {
+                return `${minutes}m ago`;
+            }
+        }
+
+        // Toggle completed status
+        function toggleCompleted(bossId) {
+            const boss = bosses.find(b => b.id === bossId);
+            if (boss) {
+                boss.completed = !boss.completed;
+                renderBosses();
+            }
+        }
+
+        // Toggle notifications
+        function toggleNotifications(bossId) {
+            const boss = bosses.find(b => b.id === bossId);
+            if (boss) {
+                boss.notifications = !boss.notifications;
+                renderBosses();
+            }
+        }
+
+        // Toggle row details
+        function toggleDetails(bossId) {
+            const detailsRow = document.querySelector(`[data-details-id="${bossId}"]`);
+            const bossRow = document.querySelector(`[data-boss-id="${bossId}"]`);
+            
+            // Close previously expanded row
+            if (expandedRow && expandedRow !== bossId) {
+                const prevDetailsRow = document.querySelector(`[data-details-id="${expandedRow}"]`);
+                const prevBossRow = document.querySelector(`[data-boss-id="${expandedRow}"]`);
+                if (prevDetailsRow && prevBossRow) {
+                    prevDetailsRow.classList.remove('show');
+                    prevBossRow.classList.remove('expanded');
+                }
+            }
+            
+            // Toggle current row
+            if (detailsRow && bossRow) {
+                const isExpanded = detailsRow.classList.contains('show');
+                detailsRow.classList.toggle('show');
+                bossRow.classList.toggle('expanded');
+                expandedRow = isExpanded ? null : bossId;
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            renderBosses();
+        }
+
+        // Refresh data
+        function refreshData() {
+            // Simulate data refresh
+            bosses = [...bossData[currentLanguage]];
+            renderBosses();
+            
+            // Add refresh animation
+            const refreshBtn = document.querySelector('#refresh-text').parentElement;
+            refreshBtn.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                refreshBtn.style.transform = 'rotate(0deg)';
+            }, 500);
+        }
+
+        // Update timers
+        function updateTimers() {
+            const timers = document.querySelectorAll('.timer[data-time]');
+            timers.forEach(timer => {
+                const respawnTime = new Date(parseInt(timer.getAttribute('data-time')));
+                const timerInfo = getTimerInfo(respawnTime);
+                
+                timer.textContent = timerInfo.text;
+                timer.className = `timer ${timerInfo.class}`;
+            });
+        }
+
+        // Start timer updates
+        function startTimerUpdates() {
+            updateTimers();
+            updateInterval = setInterval(updateTimers, 1000);
+        }
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
